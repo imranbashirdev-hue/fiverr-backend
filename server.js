@@ -5,25 +5,48 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check (GET)
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Backend is alive' });
-});
+app.get('/', (req, res) => res.json({ status: 'ok', message: 'Backend alive' }));
 
-// Fiverr analyze endpoint (POST) - returns dummy CSV for testing
 app.post('/api/analyze/fiverr', (req, res) => {
   const { keyword } = req.body;
-  const dummyCsv = `originalTitle,optimizedTitle,aiSummary\n"${keyword} gig","Optimized ${keyword} gig - high conversion","Test analysis for debugging"`;
-  res.json({ success: true, results: [], csv: dummyCsv });
+  const results = [];
+  // Create 20 dummy results
+  for (let i = 0; i < 20; i++) {
+    results.push({
+      original: {
+        title: `${keyword} gig example ${i+1}`,
+        description: 'This is a sample gig description',
+        price: '$50',
+        sellerName: 'seller_' + i,
+        rating: '4.9',
+        deliveryTime: '2 days',
+        revisions: '2',
+        tags: ['dummy', 'test'],
+        url: `https://fiverr.com/gig${i+1}`
+      },
+      optimized: {
+        analysis: `AI suggestion: Improve ${keyword} gig with better keywords and social proof.`,
+        optimizedData: `Title: Professional ${keyword} in 24h\nDescription: High-quality custom service\nPrice: $75`
+      }
+    });
+  }
+  
+  // Generate CSV rows
+  const csvRows = ['originalTitle,optimizedTitle,originalDescription,optimizedDescription,originalPrice,suggestedPrice,aiSummary'];
+  results.forEach(r => {
+    const optTitle = (r.optimized.optimizedData.split('\n')[0] || '').replace('Title: ', '');
+    const optDesc = (r.optimized.optimizedData.split('\n')[1] || '').replace('Description: ', '');
+    const optPrice = (r.optimized.optimizedData.split('\n')[2] || '').replace('Price: ', '');
+    csvRows.push(`"${r.original.title}","${optTitle}","${r.original.description}","${optDesc}","${r.original.price}","${optPrice}","${r.optimized.analysis}"`);
+  });
+  
+  const csv = csvRows.join('\n');
+  res.json({ success: true, results, csv });
 });
 
-// Upwork proposal endpoint (POST) - dummy proposal
 app.post('/api/generate-proposal', (req, res) => {
-  const { jobUrl } = req.body;
-  res.json({ success: true, proposal: `I can help with this job: ${jobUrl}. Let's discuss further.` });
+  res.json({ success: true, proposal: `I can help with this job: ${req.body.jobUrl}` });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
